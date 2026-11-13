@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizForm Pro - Sistema de Quiz Dinâmico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        primaryDark: '#4f46e5'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800 relative bg-cover bg-center transition-all duration-500" id="bodyBg" style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1920&q=80');">
+
+    <!-- Header / Botão Admin -->
+    <header class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 max-w-6xl mx-auto">
+        <div id="headerLogoContainer" class="flex items-center gap-3">
+            <div id="logoWrapper" class="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center overflow-hidden shadow-md">
+                <i class="fa-solid fa-clipboard-question text-primary text-xl" id="defaultLogoIcon"></i>
+            </div>
+            <span class="text-white font-bold text-lg drop-shadow-md" id="headerBrandTitle">QuizForm Pro</span>
+        </div>
+        <button onclick="openAdminModal()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl backdrop-blur-md transition text-sm font-semibold flex items-center gap-2 shadow-lg border border-white/30">
+            <i class="fa-solid fa-lock"></i> Área do Administrador
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <main class="min-h-screen flex items-center justify-center p-4 pt-20 pb-12 z-10 relative">
+        
+        <!-- VISÃO DO PARTICIPANTE (QUIZ) -->
+        <div id="participantView" class="w-full max-w-2xl glass-panel rounded-3xl shadow-2xl p-6 sm:p-10 border border-white/20 transition-all duration-300">
+            
+            <!-- Barra de Progresso -->
+            <div id="progressBarContainer" class="mb-8">
+                <div class="flex justify-between items-center text-xs font-semibold text-gray-500 mb-2">
+                    <span id="progressStepText">Pergunta 1 de 3</span>
+                    <span id="progressPercentText">33%</span>
+                </div>
+                <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-primary h-2.5 rounded-full transition-all duration-300" style="width: 33%;"></div>
+                </div>
+            </div>
+
+            <!-- Formulário / Quiz -->
+            <div id="quizContainer">
+                <div id="questionWrapper" class="mb-8">
+                    <!-- Inserido dinamicamente via JS -->
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+                    <button id="btnPrev" onclick="prevQuestion()" class="px-5 py-2.5 rounded-xl border border-gray-300 font-medium text-gray-600 hover:bg-gray-50 transition hidden">
+                        <i class="fa-solid fa-arrow-left mr-2"></i> Anterior
+                    </button>
+                    <div class="ml-auto flex gap-3">
+                        <button id="btnNext" onclick="nextQuestion()" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primaryDark text-white font-semibold shadow-lg shadow-primary/30 transition flex items-center gap-2">
+                            Próxima <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Conclusão -->
+            <div id="completionContainer" class="hidden text-center py-8">
+                <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-inner">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-3">Quiz Concluído com Sucesso!</h2>
+                <p class="text-gray-600 mb-8 max-w-md mx-auto">Obrigado por participar! Suas respostas foram salvas com segurança no sistema.</p>
+                
+                <div id="finalActionWrapper" class="hidden">
+                    <a id="finalCustomBtn" href="#" target="_blank" class="inline-flex items-center gap-2 px-8 py-3.5 bg-primary hover:bg-primaryDark text-white font-bold rounded-xl shadow-xl shadow-primary/30 transition transform hover:-translate-y-0.5">
+                        <span id="finalBtnText">Acessar Link</span> <i class="fa-solid fa-external-link-alt"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- MODAL DO ADMINISTRADOR (PROTEGIDO POR SENHA) -->
+    <div id="adminModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        
+        <!-- Tela de Login do Admin -->
+        <div id="adminLoginBox" class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 text-center">
+            <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Painel do Administrador</h3>
+            <p class="text-gray-500 text-sm mb-6">Digite a senha de acesso para configurar o quiz e ver as respostas.</p>
+            
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Senha de Acesso</label>
+                    <input type="password" id="adminPasswordInput" placeholder="Sua senha..." required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:outline-none transition">
+                </div>
+                <button type="submit" class="w-full py-3 bg-primary hover:bg-primaryDark text-white font-semibold rounded-xl shadow-lg shadow-primary/30 transition">
+                    Entrar no Painel
+                </button>
+            </form>
+            <button onclick="closeAdminModal()" class="mt-4 text-sm text-gray-400 hover:text-gray-600 transition">Voltar ao Quiz</button>
+        </div>
+
+        <!-- Painel Completo do Admin -->
+        <div id="adminDashboardBox" class="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col hidden overflow-hidden">
+            <!-- Header do Painel -->
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800">Painel de Controle QuizForm</h3>
+                        <p class="text-xs text-gray-500">Gerencie perguntas, design e acompanhe o resumo das respostas.</p>
+                    </div>
+                </div>
+                <button onclick="closeAdminModal()" class="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Abas do Painel -->
+            <div class="flex border-b border-gray-200 px-6 bg-gray-50/50 gap-4 overflow-x-auto">
+                <button onclick="switchAdminTab('questions')" id="tabBtnQuestions" class="py-3 px-4 font-semibold text-sm border-b-2 border-primary text-primary transition whitespace-nowrap">
+                    <i class="fa-solid fa-list-check mr-2"></i> Perguntas (<span id="countTabQuestions">3</span>)
+                </button>
+                <button onclick="switchAdminTab('appearance')" id="tabBtnAppearance" class="py-3 px-4 font-semibold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition whitespace-nowrap">
+                    <i class="fa-solid fa-palette mr-2"></i> Aparência & Botão Final
+                </button>
+                <button onclick="switchAdminTab('summary')" id="tabBtnSummary" class="py-3 px-4 font-semibold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition whitespace-nowrap">
+                    <i class="fa-solid fa-chart-pie mr-2"></i> Resumo de Respostas (<span id="countSubmissions">0</span>)
+                </button>
+                <button onclick="switchAdminTab('settings')" id="tabBtnSettings" class="py-3 px-4 font-semibold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition whitespace-nowrap">
+                    <i class="fa-solid fa-gear mr-2"></i> Configurações & Senha
+                </button>
+            </div>
+
+            <!-- Conteúdo das Abas -->
+            <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+                
+                <!-- ABA 1: PERGUNTAS -->
+                <div id="adminTabQuestions" class="space-y-6">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-gray-800">Controle de Quantidade</h4>
+                            <p class="text-xs text-gray-500">Defina o número exato de perguntas do quiz ou adicione manualmente.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center border border-gray-300 rounded-xl overflow-hidden bg-white">
+                                <button onclick="adjustQuestionCount(-1)" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 transition"><i class="fa-solid fa-minus"></i></button>
+                                <input type="number" id="inputExactCount" min="1" max="50" value="3" class="w-16 text-center font-bold focus:outline-none py-2">
+                                <button onclick="adjustQuestionCount(1)" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 transition"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                            <button onclick="applyExactQuestionCount()" class="px-4 py-2 bg-primary hover:bg-primaryDark text-white font-semibold rounded-xl text-sm transition shadow-md shadow-primary/20">
+                                Aplicar Quantidade
+                            </button>
+                            <button onclick="addNewQuestion()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-plus"></i> Nova Pergunta
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Perguntas Editáveis -->
+                    <div id="adminQuestionsList" class="space-y-4">
+                        <!-- Gerado via JS -->
+                    </div>
+                </div>
+
+                <!-- ABA 2: APARÊNCIA & BOTÃO -->
+                <div id="adminTabAppearance" class="space-y-6 hidden max-w-2xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6">
+                        <h4 class="font-bold text-gray-800 text-lg border-b pb-3">Identidade Visual & Logo</h4>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Logo do Quiz</label>
+                                <input type="file" id="logoUploadInput" accept="image/*" onchange="handleLogoUpload(event)" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Imagem de Fundo (URL ou arquivo)</label>
+                                <input type="text" id="inputBgUrl" placeholder="https://exemplo.com/imagem.jpg" oninput="updateBackgroundUrl(this.value)" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" id="checkProgressBar" checked onchange="saveConfig()" class="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary">
+                                <span class="font-medium text-sm text-gray-700">Exibir Barra de Progresso no topo do formulário</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6">
+                        <h4 class="font-bold text-gray-800 text-lg border-b pb-3">Configuração do Botão Final</h4>
+                        
+                        <div class="space-y-4">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" id="checkEnableFinalBtn" checked onchange="saveConfig()" class="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary">
+                                <span class="font-medium text-sm text-gray-700">Mostrar botão com link na tela de conclusão</span>
+                            </label>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Texto do Botão</label>
+                                <input type="text" id="inputFinalBtnText" value="Acessar Canal / Grupo" oninput="saveConfig()" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">URL / Link de Destino</label>
+                                <input type="url" id="inputFinalBtnUrl" value="https://wa.me/" oninput="saveConfig()" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA 3: RESUMO DE RESPOSTAS -->
+                <div id="adminTabSummary" class="space-y-6 hidden">
+                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+                        <div>
+                            <h4 class="font-bold text-gray-800">Resumo Privado das Respostas</h4>
+                            <p class="text-xs text-gray-500">Visualização exclusiva do administrador com estatísticas e envios individuais.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="exportSubmissionsCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow flex items-center gap-2">
+                                <i class="fa-solid fa-file-excel"></i> Exportar CSV
+                            </button>
+                            <button onclick="clearSubmissionsData()" class="px-3 py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 font-semibold rounded-xl text-sm transition" title="Limpar histórico">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos / Estatísticas por Pergunta -->
+                    <div id="adminSummaryStatsContainer" class="space-y-6">
+                        <!-- Gerado via JS -->
+                    </div>
+
+                    <!-- Lista de Envios Individuais -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+                        <div class="p-4 bg-gray-50 border-b font-bold text-gray-700 text-sm">Histórico de Participantes</div>
+                        <div id="adminSubmissionsList" class="divide-y divide-gray-100">
+                            <!-- Gerado via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA 4: CONFIGURAÇÕES & SENHA -->
+                <div id="adminTabSettings" class="space-y-6 hidden max-w-md mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+                        <h4 class="font-bold text-gray-800 text-lg border-b pb-3">Alterar Senha do Administrador</h4>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nova Senha</label>
+                            <input type="password" id="inputNewAdminPassword" placeholder="Digite a nova senha..." class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                        <button onclick="updateAdminPassword()" class="w-full py-2.5 bg-primary hover:bg-primaryDark text-white font-semibold rounded-xl text-sm transition shadow">
+                            Salvar Nova Senha
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Footer do Painel -->
+            <div class="px-6 py-3 bg-gray-100 border-t border-gray-200 flex justify-end">
+                <button onclick="saveAllChangesAndClose()" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow">
+                    Salvar e Fechar Painel
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Principal -->
+    <script>
+        // Estado Padrão do Sistema
+        let quizState = {
+            adminPassword: "admin123",
+            showProgressBar: true,
+            enableFinalBtn: true,
+            finalBtnText: "Acessar Canal / Grupo",
+            finalBtnUrl: "https://wa.me/",
+            bgImageUrl: "https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1920&q=80",
+            logoBase64: null,
+            questions: [
+                {
+                    id: 1,
+                    title: "Qual é o seu principal objetivo ao utilizar nossa plataforma?",
+                    type: "single", // single, multiple, text, rating
+                    options: ["Crescimento Profissional", "Aprendizado Rápido", "Networking e Parcerias", "Outro motivo"],
+                    required: true
+                },
+                {
+                    id: 2,
+                    title: "Como você avalia a sua experiência inicial até o momento?",
+                    type: "rating",
+                    options: ["1", "2", "3", "4", "5"],
+                    required: true
+                },
+                {
+                    id: 3,
+                    title: "Deixe sugestões ou comentários adicionais (opcional):",
+                    type: "text",
+                    options: [],
+                    required: false
+                }
+            ],
+            submissions: []
+        };
+
+        // Carregar dados salvos no localStorage se houver
+        function loadSavedData() {
+            const saved = localStorage.getItem("quizFormPro_data");
+            if (saved) {
+                try {
+                    quizState = JSON.parse(saved);
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem("quizFormPro_data", JSON.stringify(quizState));
+        }
+
+        // Variáveis de Controle do Participante
+        let currentQuestionIndex = 0;
+        let participantAnswers = {};
+
+        // Inicialização
+        window.onload = function() {
+            loadSavedData();
+            applyAppearance();
+            renderParticipantQuestion();
+        };
+
+        // --- APARÊNCIA ---
+        function applyAppearance() {
+            // Fundo
+            if (quizState.bgImageUrl) {
+                document.getElementById('bodyBg').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${quizState.bgImageUrl}')`;
+                document.getElementById('inputBgUrl').value = quizState.bgImageUrl;
+            }
+            // Logo
+            const logoWrapper = document.getElementById('logoWrapper');
+            if (quizState.logoBase64) {
+                logoWrapper.innerHTML = `<img src="${quizState.logoBase64}" class="w-full h-full object-cover">`;
+            } else {
+                logoWrapper.innerHTML = `<i class="fa-solid fa-clipboard-question text-primary text-xl"></i>`;
+            }
+            // Barra de Progresso
+            const progContainer = document.getElementById('progressBarContainer');
+            if (quizState.showProgressBar) {
+                progContainer.classList.remove('hidden');
+                document.getElementById('checkProgressBar').checked = true;
+            } else {
+                progContainer.classList.add('hidden');
+                document.getElementById('checkProgressBar').checked = false;
+            }
+            // Configurações do Botão Final
+            document.getElementById('checkEnableFinalBtn').checked = quizState.enableFinalBtn;
+            document.getElementById('inputFinalBtnText').value = quizState.finalBtnText;
+            document.getElementById('inputFinalBtnUrl').value = quizState.finalBtnUrl;
+        }
+
+        function updateBackgroundUrl(url) {
+            quizState.bgImageUrl = url;
+            if(url) {
+                document.getElementById('bodyBg').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${url}')`;
+            }
+            saveToStorage();
+        }
+
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    quizState.logoBase64 = e.target.result;
+                    applyAppearance();
+                    saveToStorage();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- VISÃO DO PARTICIPANTE ---
+        function renderParticipantQuestion() {
+            const totalQ = quizState.questions.length;
+            if (totalQ === 0) {
+                document.getElementById('questionWrapper').innerHTML = `<p class="text-center text-gray-500 py-6">Nenhuma pergunta configurada pelo administrador.</p>`;
+                return;
+            }
+
+            if (currentQuestionIndex >= totalQ) {
+                showCompletionScreen();
+                return;
+            }
+
+            // Atualizar Progresso
+            const percent = Math.round(((currentQuestionIndex + 1) / totalQ) * 100);
+            document.getElementById('progressStepText').innerText = `Pergunta ${currentQuestionIndex + 1} de ${totalQ}`;
+            document.getElementById('progressPercentText').innerText = `${percent}%`;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+
+            const q = quizState.questions[currentQuestionIndex];
+            const wrapper = document.getElementById('questionWrapper');
+            const savedAns = participantAnswers[currentQuestionIndex] || (q.type === 'multiple' ? [] : '');
+
+            let html = `
+                <div class="mb-4">
+                    <span class="text-xs font-bold text-primary uppercase tracking-wider">Questão ${currentQuestionIndex + 1}</span>
+                    <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mt-1">${q.title} ${q.required ? '<span class="text-rose-500">*</span>' : ''}</h3>
+                </div>
+            `;
+
+            if (q.type === 'single') {
+                html += `<div class="space-y-3">`;
+                q.options.forEach((opt, idx) => {
+                    const checked = savedAns === opt ? 'checked' : '';
+                    html += `
+                        <label class="flex items-center p-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-primary/5 cursor-pointer transition ${checked ? 'border-primary bg-primary/5 ring-1 ring-primary' : ''}">
+                            <input type="radio" name="p_opt_${currentQuestionIndex}" value="${escapeHtml(opt)}" ${checked} onchange="saveParticipantAnswer(${currentQuestionIndex}, '${escapeHtml(opt)}', 'single')" class="w-4 h-4 text-primary focus:ring-primary">
+                            <span class="ml-3 font-medium text-gray-700">${opt}</span>
+                        </label>
+                    `;
+                });
+                html += `</div>`;
+            } else if (q.type === 'multiple') {
+                html += `<div class="space-y-3">`;
+                q.options.forEach((opt, idx) => {
+                    const isChecked = Array.isArray(savedAns) && savedAns.includes(opt);
+                    html += `
+                        <label class="flex items-center p-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-primary/5 cursor-pointer transition ${isChecked ? 'border-primary bg-primary/5 ring-1 ring-primary' : ''}">
+                            <input type="checkbox" value="${escapeHtml(opt)}" ${isChecked ? 'checked' : ''} onchange="handleCheckboxChange(${currentQuestionIndex}, '${escapeHtml(opt)}')" class="w-4 h-4 text-primary rounded focus:ring-primary">
+                            <span class="ml-3 font-medium text-gray-700">${opt}</span>
+                        </label>
+                    `;
+                });
+                html += `</div>`;
+            } else if (q.type === 'rating') {
+                html += `<div class="flex justify-center gap-3 py-4">`;
+                const scale = q.options.length > 0 ? q.options : ["1", "2", "3", "4", "5"];
+                scale.forEach((star) => {
+                    const selected = savedAns === star;
+                    html += `
+                        <button type="button" onclick="saveParticipantAnswer(${currentQuestionIndex}, '${star}', 'single'); renderParticipantQuestion();" class="w-12 h-12 rounded-xl font-bold text-lg transition flex items-center justify-center border ${selected ? 'bg-primary text-white border-primary shadow-lg shadow-primary/30' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}">
+                            ${star}
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+            } else if (q.type === 'text') {
+                html += `
+                    <div>
+                        <textarea rows="4" oninput="saveParticipantAnswer(${currentQuestionIndex}, this.value, 'text')" placeholder="Digite sua resposta aqui..." class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:outline-none transition">${savedAns}</textarea>
+                    </div>
+                `;
+            }
+
+            wrapper.innerHTML = html;
+
+            // Botões de Navegação
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            if (currentQuestionIndex > 0) {
+                btnPrev.classList.remove('hidden');
+            } else {
+                btnPrev.classList.add('hidden');
+            }
+
+            if (currentQuestionIndex === totalQ - 1) {
+                btnNext.innerHTML = `Finalizar <i class="fa-solid fa-check ml-2"></i>`;
+            } else {
+                btnNext.innerHTML = `Próxima <i class="fa-solid fa-arrow-right ml-2"></i>`;
+            }
+        }
+
+        function saveParticipantAnswer(qIndex, val, type) {
+            participantAnswers[qIndex] = val;
+        }
+
+        function handleCheckboxChange(qIndex, val) {
+            if (!Array.isArray(participantAnswers[qIndex])) {
+                participantAnswers[qIndex] = [];
+            }
+            const arr = participantAnswers[qIndex];
+            const idx = arr.indexOf(val);
+            if (idx > -1) {
+                arr.splice(idx, 1);
+            } else {
+                arr.push(val);
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderParticipantQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            const q = quizState.questions[currentQuestionIndex];
+            if (q.required) {
+                const ans = participantAnswers[currentQuestionIndex];
+                if (!ans || (Array.isArray(ans) && ans.length === 0)) {
+                    alert("Por favor, responda esta pergunta para continuar.");
+                    return;
+                }
+            }
+
+            currentQuestionIndex++;
+            renderParticipantQuestion();
+        }
+
+        function showCompletionScreen() {
+            document.getElementById('progressBarContainer').classList.add('hidden');
+            document.getElementById('quizContainer').classList.add('hidden');
+            document.getElementById('completionContainer').classList.remove('hidden');
+
+            // Salvar envio no sistema
+            const submissionRecord = {
+                date: new Date().toLocaleString(),
+                answers: {...participantAnswers}
+            };
+            quizState.submissions.push(submissionRecord);
+            saveToStorage();
+
+            // Configurar botão final
+            const actionWrapper = document.getElementById('finalActionWrapper');
+            if (quizState.enableFinalBtn && quizState.finalBtnUrl) {
+                actionWrapper.classList.remove('hidden');
+                document.getElementById('finalBtnText').innerText = quizState.finalBtnText;
+                document.getElementById('finalCustomBtn').href = quizState.finalBtnUrl;
+            } else {
+                actionWrapper.classList.add('hidden');
+            }
+        }
+
+        // --- PAINEL DO ADMINISTRADOR ---
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.remove('hidden');
+            document.getElementById('adminLoginBox').classList.remove('hidden');
+            document.getElementById('adminDashboardBox').classList.add('hidden');
+            document.getElementById('adminPasswordInput').value = '';
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.add('hidden');
+            // Recarregar quiz caso tenha mudado perguntas
+            currentQuestionIndex = 0;
+            participantAnswers = {};
+            document.getElementById('quizContainer').classList.remove('hidden');
+            document.getElementById('completionContainer').classList.add('hidden');
+            renderParticipantQuestion();
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const pwd = document.getElementById('adminPasswordInput').value;
+            if (pwd === quizState.adminPassword) {
+                document.getElementById('adminLoginBox').classList.add('hidden');
+                document.getElementById('adminDashboardBox').classList.remove('hidden');
+                renderAdminDashboard();
+            } else {
+                alert("Senha incorreta!");
+            }
+        }
+
+        function switchAdminTab(tabName) {
+            ['Questions', 'Appearance', 'Summary', 'Settings'].forEach(t => {
+                document.getElementById(`adminTab${t}`).classList.add('hidden');
+                document.getElementById(`tabBtn${t}`).className = "py-3 px-4 font-semibold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition whitespace-nowrap";
+            });
+            document.getElementById(`adminTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.remove('hidden');
+            document.getElementById(`tabBtn${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).className = "py-3 px-4 font-semibold text-sm border-b-2 border-primary text-primary transition whitespace-nowrap";
+
+            if (tabName === 'summary') {
+                renderAdminSummary();
+            }
+        }
+
+        function renderAdminDashboard() {
+            document.getElementById('countTabQuestions').innerText = quizState.questions.length;
+            document.getElementById('inputExactCount').value = quizState.questions.length;
+            document.getElementById('countSubmissions').innerText = quizState.submissions.length;
+            renderAdminQuestionsList();
+        }
+
+        // Gestão de Perguntas no Admin
+        function renderAdminQuestionsList() {
+            const listContainer = document.getElementById('adminQuestionsList');
+            if (quizState.questions.length === 0) {
+                listContainer.innerHTML = `<p class="text-center text-gray-400 py-8">Nenhuma pergunta cadastrada.</p>`;
+                return;
+            }
+
+            let html = '';
+            quizState.questions.forEach((q, qIdx) => {
+                html += `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="w-8 h-8 rounded-lg bg-gray-100 font-bold text-gray-600 flex items-center justify-center text-sm">${qIdx + 1}</span>
+                            <input type="text" value="${escapeHtml(q.title)}" oninput="updateQuestionTitle(${qIdx}, this.value)" placeholder="Título da pergunta..." class="flex-1 px-4 py-2 rounded-xl border border-gray-300 font-semibold text-gray-800 text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                            <select onchange="updateQuestionType(${qIdx}, this.value)" class="px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white font-medium text-gray-600">
+                                <option value="single" ${q.type==='single'?'selected':''}>Múltipla Escolha</option>
+                                <option value="multiple" ${q.type==='multiple'?'selected':''}>Caixas de Seleção</option>
+                                <option value="rating" ${q.type==='rating'?'selected':''}>Escala Numérica</option>
+                                <option value="text" ${q.type==='text'?'selected':''}>Texto Aberto</option>
+                            </select>
+                            <div class="flex items-center gap-1">
+                                <button onclick="moveQuestion(${qIdx}, -1)" class="p-2 text-gray-400 hover:text-gray-700 transition" title="Subir"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button onclick="moveQuestion(${qIdx}, 1)" class="p-2 text-gray-400 hover:text-gray-700 transition" title="Descer"><i class="fa-solid fa-arrow-down"></i></button>
+                                <button onclick="duplicateQuestion(${qIdx})" class="p-2 text-blue-500 hover:text-blue-700 transition" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
+                                <button onclick="deleteQuestion(${qIdx})" class="p-2 text-rose-500 hover:text-rose-700 transition" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+
+                        ${q.type !== 'text' ? `
+                            <div class="pl-12 space-y-2 border-t pt-3">
+                                <div class="text-xs font-bold text-gray-500 uppercase">Alternativas</div>
+                                <div class="space-y-2" id="optionsList_${qIdx}">
+                                    ${q.options.map((opt, optIdx) => `
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" value="${escapeHtml(opt)}" oninput="updateOptionText(${qIdx}, ${optIdx}, this.value)" class="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:ring-1 focus:ring-primary focus:outline-none">
+                                            <button onclick="removeOption(${qIdx}, ${optIdx})" class="text-gray-400 hover:text-rose-500 p-1.5"><i class="fa-solid fa-xmark"></i></button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <button onclick="addOption(${qIdx})" class="mt-2 text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> Adicionar Alternativa
+                                </button>
+                            </div>
+                        ` : ''}
+
+                        <div class="pl-12 pt-2 flex items-center justify-between text-xs text-gray-500 border-t">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" ${q.required ? 'checked' : ''} onchange="toggleRequired(${qIdx})" class="rounded text-primary focus:ring-primary">
+                                <span>Pergunta obrigatória</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+        }
+
+        function adjustQuestionCount(amount) {
+            const input = document.getElementById('inputExactCount');
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, Math.min(50, val + amount));
+            input.value = val;
+        }
+
+        function applyExactQuestionCount() {
+            const targetCount = parseInt(document.getElementById('inputExactCount').value) || 1;
+            while (quizState.questions.length < targetCount) {
+                quizState.questions.push({
+                    id: Date.now() + Math.random(),
+                    title: `Nova Pergunta ${quizState.questions.length + 1}`,
+                    type: "single",
+                    options: ["Alternativa A", "Alternativa B"],
+                    required: true
+                });
+            }
+            while (quizState.questions.length > targetCount) {
+                quizState.questions.pop();
+            }
+            renderAdminDashboard();
+            saveToStorage();
+        }
+
+        function addNewQuestion() {
+            quizState.questions.push({
+                id: Date.now(),
+                title: "Nova Pergunta",
+                type: "single",
+                options: ["Sim", "Não"],
+                required: true
+            });
+            renderAdminDashboard();
+            saveToStorage();
+        }
+
+        function duplicateQuestion(index) {
+            const qToClone = JSON.parse(JSON.stringify(quizState.questions[index]));
+            qToClone.id = Date.now();
+            qToClone.title += " (Cópia)";
+            quizState.questions.splice(index + 1, 0, qToClone);
+            renderAdminDashboard();
+            saveToStorage();
+        }
+
+        function deleteQuestion(index) {
+            if (quizState.questions.length <= 1) {
+                alert("O quiz precisa ter pelo menos 1 pergunta.");
+                return;
+            }
+            quizState.questions.splice(index, 1);
+            renderAdminDashboard();
+            saveToStorage();
+        }
+
+        function moveQuestion(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= quizState.questions.length) return;
+            const item = quizState.questions.splice(index, 1)[0];
+            quizState.questions.splice(newIndex, 0, item);
+            renderAdminDashboard();
+            saveToStorage();
+        }
+
+        function updateQuestionTitle(qIdx, val) {
+            quizState.questions[qIdx].title = val;
+            saveToStorage();
+        }
+
+        function updateQuestionType(qIdx, type) {
+            quizState.questions[qIdx].type = type;
+            if (type === 'rating' && quizState.questions[qIdx].options.length === 0) {
+                quizState.questions[qIdx].options = ["1", "2", "3", "4", "5"];
+            }
+            renderAdminQuestionsList();
+            saveToStorage();
+        }
+
+        function updateOptionText(qIdx, optIdx, val) {
+            quizState.questions[qIdx].options[optIdx] = val;
+            saveToStorage();
+        }
+
+        function addOption(qIdx) {
+            quizState.questions[qIdx].options.push(`Nova Alternativa ${quizState.questions[qIdx].options.length + 1}`);
+            renderAdminQuestionsList();
+            saveToStorage();
+        }
+
+        function removeOption(qIdx, optIdx) {
+            if (quizState.questions[qIdx].options.length <= 1) {
+                alert("A pergunta precisa ter pelo menos 1 alternativa.");
+                return;
+            }
+            quizState.questions[qIdx].options.splice(optIdx, 1);
+            renderAdminQuestionsList();
+            saveToStorage();
+        }
+
+        function toggleRequired(qIdx) {
+            quizState.questions[qIdx].required = !quizState.questions[qIdx].required;
+            saveToStorage();
+        }
+
+        function saveConfig() {
+            quizState.showProgressBar = document.getElementById('checkProgressBar').checked;
+            quizState.enableFinalBtn = document.getElementById('checkEnableFinalBtn').checked;
+            quizState.finalBtnText = document.getElementById('inputFinalBtnText').value;
+            quizState.finalBtnUrl = document.getElementById('inputFinalBtnUrl').value;
+            saveToStorage();
+            applyAppearance();
+        }
+
+        function updateAdminPassword() {
+            const newPwd = document.getElementById('inputNewAdminPassword').value;
+            if (!newPwd) {
+                alert("Digite uma senha válida.");
+                return;
+            }
+            quizState.adminPassword = newPwd;
+            saveToStorage();
+            alert("Senha atualizada com sucesso!");
+            document.getElementById('inputNewAdminPassword').value = '';
+        }
+
+        // Resumo de Respostas no Admin
+        function renderAdminSummary() {
+            document.getElementById('countSubmissions').innerText = quizState.submissions.length;
+            const statsContainer = document.getElementById('adminSummaryStatsContainer');
+            const listContainer = document.getElementById('adminSubmissionsList');
+
+            if (quizState.submissions.length === 0) {
+                statsContainer.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-gray-400 border border-gray-200">Nenhuma resposta registrada até o momento.</div>`;
+                listContainer.innerHTML = `<div class="p-6 text-center text-gray-400 text-sm">Nenhum histórico disponível.</div>`;
+                return;
+            }
+
+            // Estatísticas por Pergunta
+            let statsHtml = '';
+            quizState.questions.forEach((q, qIdx) => {
+                statsHtml += `
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-3">
+                        <div class="font-bold text-gray-800 text-sm">Q${qIdx + 1}: ${q.title}</div>
+                `;
+
+                if (q.type === 'text') {
+                    statsHtml += `<div class="space-y-2 max-h-40 overflow-y-auto">`;
+                    quizState.submissions.forEach(sub => {
+                        const ans = sub.answers[qIdx];
+                        if (ans) {
+                            statsHtml += `<div class="bg-gray-50 p-2.5 rounded-xl text-xs text-gray-700 border">"${escapeHtml(ans)}"</div>`;
+                        }
+                    });
+                    statsHtml += `</div>`;
+                } else {
+                    // Contagem de Alternativas
+                    const counts = {};
+                    q.options.forEach(opt => counts[opt] = 0);
+                    let totalAnswersForQ = 0;
+
+                    quizState.submissions.forEach(sub => {
+                        const ans = sub.answers[qIdx];
+                        if (Array.isArray(ans)) {
+                            ans.forEach(a => { if (counts[a] !== undefined) counts[a]++; totalAnswersForQ++; });
+                        } else if (ans) {
+                            if (counts[ans] !== undefined) counts[ans]++;
+                            totalAnswersForQ++;
+                        }
+                    });
+
+                    statsHtml += `<div class="space-y-2">`;
+                    q.options.forEach(opt => {
+                        const count = counts[opt] || 0;
+                        const percent = totalAnswersForQ > 0 ? Math.round((count / totalAnswersForQ) * 100) : 0;
+                        statsHtml += `
+                            <div>
+                                <div class="flex justify-between text-xs font-medium text-gray-600 mb-1">
+                                    <span>${opt}</span>
+                                    <span>${count} votos (${percent}%)</span>
+                                </div>
+                                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-primary h-2 rounded-full transition-all" style="width: ${percent}%;"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    statsHtml += `</div>`;
+                }
+                statsHtml += `</div>`;
+            });
+            statsContainer.innerHTML = statsHtml;
+
+            // Lista de Envios Individuais
+            let subListHtml = '';
+            quizState.submissions.slice().reverse().forEach((sub, idx) => {
+                const subIndex = quizState.submissions.length - idx;
+                subListHtml += `
+                    <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gray-50 transition">
+                        <div>
+                            <span class="font-bold text-gray-800 text-sm">Participante #${subIndex}</span>
+                            <span class="text-xs text-gray-400 ml-2"><i class="fa-regular fa-clock mr-1"></i>${sub.date}</span>
+                        </div>
+                        <div class="text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg max-w-md truncate">
+                            Respostas: ${Object.values(sub.answers).map(a => Array.isArray(a) ? a.join(', ') : a).join(' | ')}
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = subListHtml;
+        }
+
+        function exportSubmissionsCSV() {
+            if (quizState.submissions.length === 0) {
+                alert("Não há dados para exportar.");
+                return;
+            }
+
+            let csv = "Data,";
+            quizState.questions.forEach((q, i) => {
+                csv += `"Q${i+1}: ${q.title.replace(/"/g, '""')}",`;
+            });
+            csv += "\n";
+
+            quizState.submissions.forEach(sub => {
+                csv += `"${sub.date}",`;
+                quizState.questions.forEach((q, i) => {
+                    const ans = sub.answers[i] || "";
+                    const cleanAns = Array.isArray(ans) ? ans.join('; ') : String(ans);
+                    csv += `"${cleanAns.replace(/"/g, '""')}",`;
+                });
+                csv += "\n";
+            });
+
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resumo_quiz_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+        }
+
+        function clearSubmissionsData() {
+            if (confirm("Tem certeza que deseja apagar todo o histórico de respostas?")) {
+                quizState.submissions = [];
+                saveToStorage();
+                renderAdminSummary();
+            }
+        }
+
+        function saveAllChangesAndClose() {
+            saveToStorage();
+            closeAdminModal();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+    </script>
+</body>
+</html>
